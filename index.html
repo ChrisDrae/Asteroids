@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CH8EX1: Filled Screen With Some Text</title>
+<script type="text/javascript">
+   window.addEventListener('load', eventWindowLoaded, false);
+   function eventWindowLoaded() {
+      canvasApp();
+   }
+   function canvasApp(){
+      var theCanvas = document.getElementById("canvas");
+     if (!theCanvas || !theCanvas.getContext) {
+         return;
+      }
+      var context = theCanvas.getContext("2d");
+      if (!context) {
+         return;
+      }
+      //Canvas App lvl Variables 
+      var rotation = 0;
+      var x = 50;
+      var y = 50;
+      var facingX = 0;
+      var facingY = 0;
+      var movingX = 0;
+      var movingY = 0;
+      var width = 20;
+      var height = 20;
+      var halfWidth = 10;
+      var halfHeight = 10;
+      var rotationalVelocity = 5; //how many degrees to turn the ship
+      var thrustAcceleration = .03;
+      var maxVelocity = 2;
+      var keyPressList = [];
+      var shipState = 0;
+      var missleFrameCount = 40;
+      
+      //primitve Asteroid Measurements
+
+      var l1 = 50 * Math.random();
+            var l2 = 50 * Math.random();
+            var l3 = 50 * Math.random();
+            var l4 = 50 * Math.random();
+
+      //application states
+      const GAME_STATE_TITLE = 0;
+      const GAME_STATE_NEW_GAME = 1;
+      const GAME_STATE_NEW_LEVEL = 2;
+      const GAME_STATE_PLAYER_START = 3;
+      const GAME_STATE_PLAY_LEVEL = 4;
+      const GAME_STATE_PLAYER_DIE = 5;
+      const GAME_STATE_GAME_OVER = 6;
+
+      var currentGameState = 0;
+      var currentGameStateFunction = null;
+
+      //title screen
+      var titleScreen = false;
+
+      //gameover Screen 
+      var gameOverStarted = false;
+
+      //game environment 
+      var score = 0;
+      var level = 0;
+      var extraShipAtEach = 10000;
+      var extraShipsEarned = 0;
+      var playerShips = 3;
+
+      //playfield 
+      var xMin = 0;
+      var xMax = 1000;
+      var yMin = 0;
+      var yMax = 1000;
+
+      //score values
+      var bigRockScore = 50;
+      var mediumRockSCore = 75;
+      var bigRockScore = 100;
+      var saucerScore = 300;
+
+      //rock scale constants 
+      const ROCK_SCALE_LARGE = 1;
+      const ROCK_SCALE_MEDIUM = 2;
+      const ROCK_SCALE_SMALL = 3;
+
+      //create game objects and arrays
+      var player = {};
+      var rocks = [];
+      var saucers = [];
+      var playerMissles = [];
+      var particles = [];
+      var saucerMissles = [];
+
+      //level specific
+      var levelRockMaxSpeedAdjust = 1;
+      var levelSaucerMax = 1;
+      var levelSaucerOccurrenceRate = 25;
+      var levelSaucerSpeed = 1;
+      var levelSaucerFireDelay = 300;
+      var levelSaucerFireRate = 30;
+      var levelSaucerMissleSpeed = 1;
+
+      //keyPresses
+      var keyPressList = [];
+
+      function runGame(){
+        currentGameStateFunction();
+      }
+
+      function switchGameState(newState){
+        currentGameState = newState;
+        switch(currentGameState){
+            case GAME_STATE_TITLE:
+                currentGameStateFunction = gameStateTitle;
+                break;
+            case GAME_STATE_NEW_GAME:
+                currentGameStateFunction = gameStateNewGame;
+                break;
+            case GAME_STATE_NEW_LEVEL:
+                currentGameState = gameStateNewLevel;
+                break;
+            case GAME_STATE_PLAYER_START:
+                currentGameState = gameStatePlayerStart;
+                break;
+            case GAME_STATE_PLAY_LEVEL:
+                currentGameState = gameStatePlayLevel;
+                break;
+            case GAME_STATE_PLAYER_DIE:
+                currentGameState = gameStatePlayerDie;
+                break;
+            case GAME_STATE_GAME_OVER:
+                currentGameStateFunction = gameStateGameOver;
+                break;
+
+        }
+      }
+
+      function gameStateTitle(){
+        if(titleStarted != true){
+            fillBackground();
+            setTextStyle();
+            context.fillText("Asteroids",130,70);
+            context.fillText("Press Space To Play",120,140);
+
+            titleStarted = true;
+        } else {
+            //wait for the space
+            if( keyPressList[32]==true){
+                Console.Log.log("space pressed");
+                switchGameState(GAME_STATE_NEW_GAME);
+                titleStarted = false;
+            }
+        }
+      }
+
+      function GameStateNewGame(){
+        //setting up the new Game 
+        level = 0;
+        score = 0;
+        playerShips = 3;
+        player.maxVelocity = 5;
+        player.width = 20;
+        player.height = 20;
+        player.halfWidth = 10;
+        player.halfHeight = 10;
+        player.rotationalVelocity = 5; //how many degrees to turn the ship
+        player.thrustAcceleration = .05;
+        player.missileFrameDelay = 5;
+        player.thrust = false;
+
+        fillBackground();
+        renderScoreBoard();
+        switchGameState(GAME_STATE_NEW_LEVEL);
+      }
+
+      function fillBackground(){
+        //drawingBackground
+        context.fillStyle = '#000000';
+        context.fillRect(xMin,yMin,xMax,yMax);
+      }
+
+      function setTextStyle(){
+        context.fillStyle = '#ffffff';
+        context.font = '15px _sans';
+        context.textBaseline = 'top';
+      }
+
+      function renderScoreBoard(){
+
+        context.fillStyle = "#ffffff";
+        context.fillText('Score ' + score, 10,20);
+        renderPlayerShip(200,16,270,.75);
+        context.fillText('X ' + playerShips, 220,20);
+
+        context.fillText('FPS: ' + frameRateRounter.lastFrameCount, 300, 20);
+      }
+
+      function gameStateNewLevel(){
+        ConsoleLog.log("appStateNewGame");
+        checkKeys();
+        update();
+        render();
+      }
+
+      function gameStateGameOver(){
+        ConsoleLog.log("appStateGameOver");
+      }
+
+      function runGame(){
+        currentGameStateFunction();
+      }
+
+      //UTIL FUNCTIONS
+
+      function checkKeys(){
+        //check keys
+        //update the ship state
+        if(keyPressList[38] == true){
+            //thrust
+            shipState = 1;
+            var angleInRadians = rotation * Math.PI / 180;
+            facingX = Math.cos(angleInRadians);
+            facingY = Math.sin(angleInRadians);
+
+            movingXNOW = movingX+thrustAcceleration*facingX;
+            movingYNOW = movingY+thrustAcceleration*facingY;
+
+            var currentVelocity = Math.sqrt((movingXNOW * movingXNOW),(movingYNOW*movingYNOW));
+
+            if(currentVelocity < maxVelocity){
+                movingX = movingXNOW;
+                movingY = movingYNOW;
+            }
+
+         }
+         if(keyPressList[38] == false){
+            shipState = 0;
+         }
+         if (keyPressList[37]==true) {
+         //rotate counterclockwise
+            rotation = rotation - rotationalVelocity;
+         }
+
+         if (keyPressList[39]==true) {
+            //rotate clockwise
+            rotation += rotationalVelocity;;
+         }
+
+         if(keyPressList[32]==true){
+            if(missleFrameCount % 40 == 0){
+               firePlayerMissle();
+            }
+         }
+      }
+
+      function update(){
+        
+        updatePlayer();
+        
+        updatePlayerMissiles();
+        /*updateRocks();
+        updateSaucers();
+        updateSaucerMissiles();
+        updateParticles(); */
+         //frameRateCounter.countFrames();
+      }
+      // render substitutes the draw components of drawScreen
+      function render(){
+
+
+        // draw background and text
+         context.fillStyle = '#000000';
+         context.fillRect(0, 0, 1000, 1000);
+         context.fillStyle = '#ffffff';
+         context.font = '20px _sans';
+         context.textBaseline = 'top';
+         context.fillText  ("FPS:" + frameRateCounter.lastFrameCount , 0, 900);
+
+         //transformation
+         var angleInRadians = (rotation) * Math.PI / 180;
+         context.save();
+         context.setTransform(1,0,0,1,0,0);
+
+         //translate the canvas origin to the center of the player
+         context.translate(x+.5*width,y+.5*height);
+         context.rotate(angleInRadians);
+
+         //drawShip
+         context.strokeStyle = '#ffffff';
+         context.beginPath();
+         context.moveTo(-10,-10);
+         context.lineTo(10,0);
+         context.moveTo(10,1);
+         context.lineTo(-10,10);
+         context.lineTo(1,1);
+         context.moveTo(1,-1);  
+         context.lineTo(-10,-10);
+
+
+         //drawThrust
+         if(shipState==1){
+         context.moveTo(0,0);
+         context.lineTo(-8,0);
+         context.moveTo(-8,1);
+         context.lineTo(0,0);
+         context.moveTo(-1,-1);
+         context.lineTo(-1,1);
+
+         }
+         context.stroke();
+         context.closePath();
+
+         //restore context 
+         context.restore();
+
+         //drawMissles
+         renderPlayerMissle();
+
+         //draw Rock primitve
+         context.strokeStyle = '#ffffff';
+         context.beginPath();
+
+            context.moveTo(500 + l1,500);
+            context.lineTo(500, 500 + l2);
+            context.lineTo (500-l3,500);
+            context.lineTo(500, 500 - l4);
+            context.lineTo(500+l1,500);
+
+            context.stroke();
+            context.closePath();
+            context.restore();
+      }
+
+      function updatePlayer(){
+        missleFrameCount++;
+        x = x+movingX;
+        y = y+movingY;
+
+        if(player.x > xMax){
+          player.x =- player.width;
+        }else if(player.x <- player.width){
+          player.x = xMax;
+        }
+
+        if (player.y > yMax) {
+         player.y =- player.height;
+        }else if (player.y<-player.height){
+         player.y = yMax;
+        }
+      }
+
+      function renderPlayerMissle(){
+         var tempPlayerMissle = {};
+         var playerMissleLength = playerMissles.length-1;
+
+         for( var playerMissleCtr = playerMissleLength; playerMissleCtr>= 0;playerMissleCtr--){
+            tempPlayerMissle = playerMissles[playerMissleCtr];
+            context.save();
+            context.setTransform(1,0,0,1,0,0);
+
+            context.translate(tempPlayerMissle.x +1, tempPlayerMissle.y + 1);
+            context.strokeStyle = '#ffffff';
+
+            context.beginPath();
+
+            context.moveTo(-1,-1);
+            context.lineTo(1,-1);
+            context.lineTo(1,1);
+            context.lineTo(-1,1);
+            context.lineTo(-1,-1);
+            context.stroke();
+            context.closePath();
+            context.restore();
+         }
+         
+      }
+
+      //rendering Rocks
+
+      function renderRock(){
+         var tempRock = {};
+         var rocksLength = rocks.length -1;
+
+         for( var rockCtr = rocksLength;rockCtr>=0; rockCtr--){
+
+            tempRock = rocks[rockCTR];
+            var angleInRadians = tempRock.rotation * Math.PI/180;
+            context.save();
+            context.setTransform(1,0,0,1,0,0);
+
+            context.translate(tempRock.x + tempRock.halfWidth,tempRock.y +tempRock.halfHeight);
+
+            context.rotate(angleInRadians);
+            context.strokeStyle = '#ffffff';
+
+            context.beginPath();
+
+            var l1 = 50 * Math.random();
+            var l2 = 50 * Math.random();
+            var l3 = 50 * Math.random();
+            var l4 = 50 * Math.random();
+
+
+            context.moveTo(500 + l1,500);
+            context.lineTo(500, 500 + l2);
+            context.lineTo (500-l3,500);
+            context.lineTo(500, 500 - l4);
+            context.lineTo(500+l1,500);
+
+            context.stroke();
+            context.closePath();
+            context.restore();
+         }
+      }
+
+      //missleUpdate
+
+      function updatePlayerMissiles() {
+      var tempPlayerMissle= {};
+      var playerMissleLength = playerMissles.length-1;
+      //ConsoleLog.log("update playerMissileLength=" + playerMissileLength);
+
+      for (var playerMissleCtr=playerMissleLength;
+           playerMissleCtr>=0;playerMissleCtr--){
+
+         //ConsoleLog.log("update player missile" + playerMissileCtr)
+         tempPlayerMissle = playerMissles[playerMissleCtr];
+         tempPlayerMissle.x += tempPlayerMissle.dx;
+         tempPlayerMissle.y += tempPlayerMissle.dy;
+         if (tempPlayerMissle.x > xMax) {
+            tempPlayerMissle.x =- tempPlayerMissle.width;
+         }else if (tempPlayerMissle.x<-tempPlayerMissle.width){
+            tempPlayerMissle.x = xMax;
+         }
+
+         if (tempPlayerMissle.y > yMax) {
+            tempPlayerMissle.y =- tempPlayerMissle.height;
+         }else if (tempPlayerMissle.y<-tempPlayerMissle.height){
+            tempPlayerMissle.y = yMax;
+         }
+
+         tempPlayerMissle.lifeCtr++;
+         if (tempPlayerMissle.lifeCtr > tempPlayerMissle.life){
+            //ConsoleLog.log("removing player missile");
+            playerMissles.splice(playerMissleCtr,1)
+            tempPlayerMissle = null;
+         }
+      }
+      }
+
+      function firePlayerMissle(){
+
+         var newPlayerMissle = {};
+         newPlayerMissle.dx = 5*Math.cos(Math.PI*rotation/180);
+         newPlayerMissle.dy = 5*Math.sin(Math.PI*rotation/180);
+         newPlayerMissle.x = x + halfWidth;
+         newPlayerMissle.y = y + halfHeight;
+         newPlayerMissle.life = 60;
+         newPlayerMissle.lifeCtr = 0;
+         newPlayerMissle.width = 2;
+         newPlayerMissle.height = 2;
+         playerMissles.push(newPlayerMissle);
+         missleFrameCount++;
+         missleFrameCount++;
+      }
+
+     function updateRocks(){
+
+var tempRock = {};
+var rocksLength = rocks.length - 1;
+//ConsoleLog.log("update rocks length=" + rocksLength);
+for (var rockCtr=rocksLength;rockCtr>=0;rockCtr--){
+   tempRock = rocks[rockCtr]
+   tempRock.x += tempRock.dx;
+   tempRock.y += tempRock.dy;
+   tempRock.rotation += tempRock.rotationInc;
+   //ConsoleLog.log("rock rotationInc="+ tempRock.rotationInc)
+   //ConsoleLog.log("rock rotation="+ tempRock.rotation)
+   if (tempRock.x > xMax) {
+      tempRock.x = xMin-tempRock.width;
+   }else if (tempRock.x<xMin-tempRock.width){
+      tempRock.x = xMax;
+   }
+
+   if (tempRock.y > yMax) {
+      tempRock.y = yMin-tempRock.width;
+   }else if (tempRock.y<yMin-tempRock.width){
+      tempRock.y = yMax;
+   }
+
+   //ConsoleLog.log("update rock "+ rockCtr)
+}
+}
+ /*
+
+function updateSaucers() {
+//first check to see if we want to add a saucer
+
+if (saucers.length< levelSaucerMax){
+   if (Math.floor(Math.random()*100)<=levelSaucerOccurrenceRate){
+      //ConsoleLog.log("create saucer")
+      var newSaucer = {};
+
+      newSaucer.width = 28;
+      newSaucer.height = 13;
+      newSaucer.halfHeight = 6.5;
+      newSaucer.halfWidth = 14;
+      newSaucer.scoreValue = saucerScore;
+      newSaucer.fireRate = levelSaucerFireRate;
+      newSaucer.fireDelay = levelSaucerFireDelay;
+      newSaucer.fireDelayCount = 0;
+      newSaucer.missileSpeed = levelSaucerMissileSpeed;
+      newSaucer.dy = (Math.random()*2);
+      if (Math.floor(Math.random)*2==1){
+         newSaucer.dy*=-1;
+      }
+
+      //choose betweeen left or right edge to start
+      if (Math.floor(Math.random()*2)==1){
+         //start on right and go left
+         newSaucer.x = 450;
+         newSaucer.dx=-1*levelSaucerSpeed;
+
+      }else{
+         //left to right
+         newSaucer.x=-50;
+         newSaucer.dx = levelSaucerSpeed;
+      }
+
+      newSaucer.missileSpeed = levelSaucerMissileSpeed;
+      newSaucer.fireDelay = levelSaucerFireDelay;
+      newSaucer.fireRate = levelSaucerFireRate;
+      newSaucer.y = Math.floor(Math.random()*400);
+
+      saucers.push(newSaucer);
+   }
+
+}
+
+var tempSaucer = {};
+var saucerLength = saucers.length-1;
+//ConsoleLog.log("update rocks length=" + rocksLength);
+for (var saucerCtr=saucerLength;saucerCtr>=0;saucerCtr--){
+   tempSaucer = saucers[saucerCtr];
+
+   //should saucer fire
+   tempSaucer.fireDelayCount++;
+
+   if (Math.floor(Math.random()*100) <=tempSaucer.fireRate
+       && tempSaucer.fireDelayCount>tempSaucer.fireDelay ){
+
+      fireSaucerMissile(tempSaucer)
+      tempSaucer.fireDelayCount= 0;
+   }
+
+   var remove = false;
+   tempSaucer.x += tempSaucer.dx;
+   tempSaucer.y += tempSaucer.dy;
+
+   //remove saucers on left and right edges
+   if (tempSaucer.dx > 0 && tempSaucer.x >xMax){
+      remove = true;
+   }else if (tempSaucer.dx <0 &&tempSaucer.x<xMin-tempSaucer.width){
+      remove = true;
+   }
+
+   //bounce saucers off over vertical edges
+   if (tempSaucer.y > yMax || tempSaucer.y<yMin-tempSaucer.width) {
+      tempSaucer.dy*=-1
+   }
+
+   if (remove==true) {
+      //remove the saucer
+      ConsoleLog.log("saucer removed")
+      saucers.splice(saucerCtr,1);
+      tempSaucer = null;
+   }
+
+}
+}
+
+function updateSaucerMissiles() {
+var tempSaucerMissile = {};
+var saucerMissileLength = saucerMissiles.length-1;
+
+for (var saucerMissileCtr=saucerMissileLength;
+     saucerMissileCtr>=0;saucerMissileCtr--){
+
+   //ConsoleLog.log("update player missile" + playerMissileCtr)
+   tempSaucerMissile = saucerMissiles[saucerMissileCtr];
+   tempSaucerMissile.x += tempSaucerMissile.dx;
+   tempSaucerMissile.y += tempSaucerMissile.dy;
+   if (tempSaucerMissile.x > xMax) {
+      tempSaucerMissile.x=-tempSaucerMissile.width;
+   }else if (tempSaucerMissile.x<-tempSaucerMissile.width){
+      tempSaucerMissile.x = xMax;
+   }
+
+   if (tempSaucerMissile.y > yMax) {
+      tempSaucerMissile.y=-tempSaucerMissile.height;
+   }else if (tempSaucerMissile.y<-tempSaucerMissile.height){
+      tempSaucerMissile.y = yMax;
+   }
+
+   tempSaucerMissile.lifeCtr++;
+   if (tempSaucerMissile.lifeCtr > tempSaucerMissile.life){
+      //remove
+      saucerMissiles.splice(saucerMissileCtr,1)
+      tempSaucerMissile = null;
+   }
+}
+}
+
+function updateParticles() {
+var tempParticle = {};
+var particleLength = particles.length-1;
+//ConsoleLog.log("particle=" + particleLength)
+for (var particleCtr=particleLength;particleCtr>=0;particleCtr--){
+   var remove = false;
+   tempParticle = particles[particleCtr];
+   tempParticle.x += tempParticle.dx;
+   tempParticle.y += tempParticle.dy;
+
+   tempParticle.lifeCtr++;
+   //ConsoleLog.log("particle.lifeCtr=" + tempParticle.lifeCtr);
+
+   //try{
+   if (tempParticle.lifeCtr > tempParticle.life){
+      remove = true;
+
+   } else if ((tempParticle.x > xMax) || (tempParticle.x<xMin)
+     || (tempParticle.y > yMax) || (tempParticle.y<yMin)){
+
+      remove = true;
+
+   }
+   //}
+   //catch(err) {
+   //   ConsoleLog.log ("error in particle");
+   //   ConsoleLog.log("particle:" + particleCtr);
+
+   //}
+
+   if (remove) {
+      particles.splice(particleCtr,1)
+      tempParticle = null;
+   }
+
+}
+} */
+
+
+      //+++ application start
+      switchGameState(GAME_STATE_TITLE);
+
+      //using JS Interval to emulate animation // application loop
+      frameRateCounter = new FrameRateCounter();
+      var FRAME_RATE = 40;
+      var intervalTime = 1000/FRAME_RATE;
+      setInterval(gameStateNewLevel,intervalTime);
+      
+
+      //***** object prototypes *****
+
+      function ConsoleLog(){
+
+      }
+
+      console_log = function(message){
+        if(typeof(console) !== 'undefined' && console != null){
+            console.log(message);
+        }
+      }
+
+      ConsoleLog.log = console_log;
+
+      document.onkeydown = function(e){
+            e = e?e:window.event;
+         //ConsoleLog.log(e.keyCode + "down");
+         keyPressList[e.keyCode] = true;
+         }
+
+         document.onkeyup = function(e){
+         //document.body.onkeyup = function(e){
+         e = e?e:window.event;
+         //ConsoleLog.log(e.keyCode + "up");
+         keyPressList[e.keyCode] = false;
+         };
+         
+         //add to Rotation
+         alpha+=.01;
+         if (alpha > 1) {
+         alpha=1;
+         } 
+
+      //*** FRAMERATECOUNTER
+      function FrameRateCounter(){
+        this.lastFrameCount = 0;
+        var dateTemp = new Date();
+        this.frameLast = dateTemp.getTime();
+        delete dateTemp;
+        this.frameCtr = 0;
+      }
+    
+      FrameRateCounter.prototype.countFrames=function(){
+        var dateTemp = new Date();
+        this.frameCtr++;
+      
+
+      if(dateTemp.getTime() >= this.frameLast+1000){
+        ConsoleLog.log("frame event");
+        this.lastFrameCount = this.frameCtr;
+        this.frameLast = dateTemp.getTime();
+        this.frameCtr = 0;
+      }
+      delete dateTemp;
+      }
+   }
+</script>
+</head>
+   <body>
+      <div style="position: absolute; top: 50px; left: 50px;">
+         <canvas id="canvas" width="1000" height="1000">
+         Your browser does not support HTML5 Canvas.
+         </canvas>
+      </div>
+   </body>
+</html>
