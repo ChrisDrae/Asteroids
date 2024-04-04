@@ -35,6 +35,7 @@
       var keyPressList = [];
       var shipState = 0;
       var missleFrameCount = 40;
+      var thrustDecceleration = -0.05;
       
       //primitve Asteroid Measurements
 
@@ -237,6 +238,17 @@
          }
          if(keyPressList[38] == false){
             shipState = 0;
+            if(movingX > 0.1){
+               movingX = movingX + thrustDecceleration;
+            }
+            else{
+               movingX = 0;
+            }
+            if(movingY > 0.1){
+               movingY = movingY + thrustDecceleration;
+            }else{
+               movingY = 0;
+            }
          }
          if (keyPressList[37]==true) {
          //rotate counterclockwise
