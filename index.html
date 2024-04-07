@@ -36,6 +36,7 @@
       var shipState = 0;
       var missleFrameCount = 40;
       var thrustDecceleration = 0.99;
+      var titleStarted = false;
       
       //primitve Asteroid Measurements
 
@@ -117,25 +118,25 @@
         currentGameState = newState;
         switch(currentGameState){
             case GAME_STATE_TITLE:
-                currentGameStateFunction = gameStateTitle;
+                currentGameState = GAME_STATE_TITLE;
                 break;
             case GAME_STATE_NEW_GAME:
-                currentGameStateFunction = gameStateNewGame;
+                currentGameState = GAME_STATE_NEW_GAME;
                 break;
             case GAME_STATE_NEW_LEVEL:
-                currentGameState = gameStateNewLevel;
+                currentGameState = GAME_STATE_NEW_LEVEL;
                 break;
             case GAME_STATE_PLAYER_START:
-                currentGameState = gameStatePlayerStart;
+                currentGameState = GAME_STATE_PLAYER_START;
                 break;
             case GAME_STATE_PLAY_LEVEL:
-                currentGameState = gameStatePlayLevel;
+                currentGameState = GAME_STATE_PLAY_LEVEL;
                 break;
             case GAME_STATE_PLAYER_DIE:
-                currentGameState = gameStatePlayerDie;
+                currentGameState = GAME_STATE_PLAYER_DIE;
                 break;
             case GAME_STATE_GAME_OVER:
-                currentGameStateFunction = gameStateGameOver;
+                currentGameState = GAME_STATE_GAME_OVER;
                 break;
 
         }
@@ -145,14 +146,14 @@
         if(titleStarted != true){
             fillBackground();
             setTextStyle();
-            context.fillText("Asteroids",130,70);
-            context.fillText("Press Space To Play",120,140);
+            context.fillText("Asteroids", canvas.width/2,canvas.height/2 , 100);
+            context.fillText("Press Space To Play",(canvas.width/2) - 30,(canvas.height/2) + 50);
 
             titleStarted = true;
         } else {
             //wait for the space
             if( keyPressList[32]==true){
-                Console.Log.log("space pressed");
+                //Console.Log.log("space pressed");
                 switchGameState(GAME_STATE_NEW_GAME);
                 titleStarted = false;
             }
@@ -291,8 +292,12 @@
       // render substitutes the draw components of drawScreen
       function render(){
 
-         
        
+       if(currentGameState == 0){
+         gameStateTitle();
+       }  
+
+       if(currentGameState == 1){
          fillBackground();
 
          drawFPS();
@@ -339,9 +344,9 @@
 
             startingPointIteration = startingPoint;
             renderRocks();
-            update();
+            updateRocks();
          //renderRock();
-           
+      }
       }
 
       function renderRocks(){
