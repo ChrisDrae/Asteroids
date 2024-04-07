@@ -35,7 +35,7 @@
       var keyPressList = [];
       var shipState = 0;
       var missleFrameCount = 40;
-      var thrustDecceleration = -0.05;
+      var thrustDecceleration = 0.99;
       
       //primitve Asteroid Measurements
 
@@ -85,6 +85,9 @@
       const ROCK_SCALE_LARGE = 1;
       const ROCK_SCALE_MEDIUM = 2;
       const ROCK_SCALE_SMALL = 3;
+      var startingPoint = 500 - (Math.random()*100);
+      var startingPointIteration;
+      var numberOfRocks = 4;
 
       //create game objects and arrays
       var player = {};
@@ -182,6 +185,13 @@
         context.fillRect(xMin,yMin,xMax,yMax);
       }
 
+      function drawFPS(){
+         context.fillStyle = '#ffffff';
+         context.font = '20px _sans';
+         context.textBaseline = 'top';
+         context.fillText  ("FPS:" + frameRateCounter.lastFrameCount , 0, 900);
+      }
+
       function setTextStyle(){
         context.fillStyle = '#ffffff';
         context.font = '15px _sans';
@@ -239,13 +249,13 @@
          if(keyPressList[38] == false){
             shipState = 0;
             if(movingX > 0.1){
-               movingX = movingX + thrustDecceleration;
+               movingX = movingX*thrustDecceleration;
             }
             else{
                movingX = 0;
             }
             if(movingY > 0.1){
-               movingY = movingY + thrustDecceleration;
+               movingY = movingY*thrustDecceleration;
             }else{
                movingY = 0;
             }
@@ -281,14 +291,11 @@
       // render substitutes the draw components of drawScreen
       function render(){
 
+         
+       
+         fillBackground();
 
-        // draw background and text
-         context.fillStyle = '#000000';
-         context.fillRect(0, 0, 1000, 1000);
-         context.fillStyle = '#ffffff';
-         context.font = '20px _sans';
-         context.textBaseline = 'top';
-         context.fillText  ("FPS:" + frameRateCounter.lastFrameCount , 0, 900);
+         drawFPS();
 
          //transformation
          var angleInRadians = (rotation) * Math.PI / 180;
@@ -330,15 +337,22 @@
          //drawMissles
          renderPlayerMissle();
 
-         //draw Rock primitve
-         context.strokeStyle = '#ffffff';
-         context.beginPath();
+            startingPointIteration = startingPoint;
+            renderRocks();
+            update();
+         //renderRock();
+           
+      }
 
-            context.moveTo(500 + l1,500);
-            context.lineTo(500, 500 + l2);
-            context.lineTo (500-l3,500);
-            context.lineTo(500, 500 - l4);
-            context.lineTo(500+l1,500);
+      function renderRocks(){
+         context.strokeStyle = '#ffffff';         
+            context.beginPath();
+
+            context.moveTo(startingPointIteration + l1,startingPointIteration);
+            context.lineTo(startingPointIteration, startingPointIteration + l2);
+            context.lineTo (startingPointIteration-l3,startingPointIteration);
+            context.lineTo(startingPointIteration, startingPointIteration - l4);
+            context.lineTo(startingPointIteration+l1,startingPointIteration);
 
             context.stroke();
             context.closePath();
@@ -394,6 +408,8 @@
       function renderRock(){
          var tempRock = {};
          var rocksLength = rocks.length -1;
+         var startingPoint = 500 * Math.random();
+         
 
          for( var rockCtr = rocksLength;rockCtr>=0; rockCtr--){
 
@@ -413,7 +429,7 @@
             var l2 = 50 * Math.random();
             var l3 = 50 * Math.random();
             var l4 = 50 * Math.random();
-
+            
 
             context.moveTo(500 + l1,500);
             context.lineTo(500, 500 + l2);
@@ -478,7 +494,7 @@
          missleFrameCount++;
       }
 
-     function updateRocks(){
+function updateRocks(){
 
 var tempRock = {};
 var rocksLength = rocks.length - 1;
